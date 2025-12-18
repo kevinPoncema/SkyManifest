@@ -18,7 +18,7 @@ services:
       # Ruta interna donde Laravel guardará los sitios descomprimidos
       DEPLOYMENT_PATH: /var/www/sites
     volumes:
-      # Código fuente de Laravel
+      # Código fuente de Laravel (Correcto: apunta a la raíz)
       - .:/var/www/html
       # Volumen compartido para los sitios estáticos (Escritura)
       - skymanifest_sites:/var/www/sites
@@ -34,18 +34,18 @@ services:
     ports:
       - "88:80"
       - "443:443"
-      - "2019:2019" # API de Administración (¡Crucial para tu proyecto!)
+      - "2019:2019" # API de Administración
     volumes:
-      # Configuración base de Caddy (opcional, pero recomendada)
+      # Configuración base de Caddy
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      # Datos de certificados SSL (Persistencia)
+      # Datos de certificados SSL
       - caddy_data:/data
       # Configuración interna de Caddy
       - caddy_config:/config
       # Volumen compartido para los sitios estáticos (Lectura)
       - skymanifest_sites:/var/www/sites
-      # Código de Laravel (para servir el dashboard/api)
-      - ./src:/var/www/html
+      # CORRECCIÓN AQUÍ: Apuntamos a la raíz (.), igual que en 'app'
+      - .:/var/www/html
     networks:
       - skymanifest_net
     depends_on:
