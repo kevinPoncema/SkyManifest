@@ -32,7 +32,7 @@ services:
     container_name: skymanifest_caddy
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "88:80"
       - "443:443"
       - "2019:2019" # API de Administración (¡Crucial para tu proyecto!)
     volumes:

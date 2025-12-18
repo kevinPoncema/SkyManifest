@@ -1,0 +1,10 @@
+{
+    admin :2019
+}
+
+:80 {
+    root * /var/www/html/public
+    encode gzip
+    php_fastcgi app:9000
+    file_server
+}
