@@ -27,4 +27,23 @@ class DomainRepo{
     {
         return Domain::where('project_id', $projectId)->get();
     }
+
+    public function findActiveByProjectId(int $projectId)
+    {
+        return Domain::where('project_id', $projectId)
+                    ->where('is_active', true)
+                    ->get();
+    }
+
+    public function findByUrl(string $url): ?Domain
+    {
+        return Domain::where('url', $url)->first();
+    }
+
+    public function findByUserId(int $userId)
+    {
+        return Domain::whereHas('project', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })->get();
+    }
 }
