@@ -1,7 +1,7 @@
 <?php
 namespace App\Repositories;
 use App\Models\Deploy;
-class DeployModelRepo{
+class DeployRepo{
     public function create(array $data): Deploy
     {
         return Deploy::create($data);

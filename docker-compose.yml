@@ -19,7 +19,7 @@ services:
       DEPLOYMENT_PATH: /var/www/sites
     volumes:
       # Código fuente de Laravel
-      - ./src:/var/www/html
+      - .:/var/www/html
       # Volumen compartido para los sitios estáticos (Escritura)
       - skymanifest_sites:/var/www/sites
     networks:
