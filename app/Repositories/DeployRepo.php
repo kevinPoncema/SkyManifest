@@ -32,4 +32,19 @@ class DeployModelRepo{
     {
         return Deploy::where('project_id', $projectId)->get();
     }
+
+    public function findLatestSuccessful(int $projectId): ?Deploy
+    {
+        return Deploy::where('project_id', $projectId)
+                    ->where('status', 'success')
+                    ->latest()
+                    ->first();
+    }
+
+    public function hasPendingDeploy(int $projectId): bool
+    {
+        return Deploy::where('project_id', $projectId)
+                    ->whereIn('status', ['pending', 'processing'])
+                    ->exists();
+    }
 }
