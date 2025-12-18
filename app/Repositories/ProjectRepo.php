@@ -28,4 +28,11 @@ class ProjectRepo
     {
         $project->delete();
     }
+
+    public function allForUserWithStatus(int $userId)
+    {
+        return Project::where('user_id', $userId)
+                    ->with(['domains', 'latestDeploy'])
+                    ->get();
+    }
 }
