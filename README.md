@@ -12,20 +12,28 @@ Los usuarios pueden desplegar sus aplicaciones web simplemente arrastrando un ar
 
 El nombre **SkyManifest** encapsula la visión de infraestructura y control del proyecto:
 
-* **Sky (Cielo / Nube):** Representa el entorno o ecosistema que el usuario está creando. Al no depender de nubes públicas de terceros, el usuario es dueño de su propio "cielo" digital, un espacio ilimitado y privado donde viven sus aplicaciones.
-* **Manifest (Manifiesto):** Es el registro detallado y la declaración de existencia de cada aplicación. Cada vez que un usuario sube código, está creando un "manifiesto" de carga que el sistema procesa, registra y hace visible al mundo.
+* **Sky (Cielo / Nube):** Representa la libertad de crear tu propia infraestructura en la nube sin depender de servicios de terceros. El "Sky" simboliza un espacio ilimitado y privado donde el usuario tiene control total sobre sus aplicaciones, creando su propio ecosistema digital independiente.
+* **Manifest (Manifiesto):** Es la declaración y registro detallado de cada aplicación desplegada. Cada despliegue crea un "manifiesto" que documenta el estado, configuración y existencia de la aplicación en la infraestructura.
 
-## 3. Explicación Detallada y Flujo
+## 3. Explicación Detallada y Flujo Híbrido
 
-El objetivo es reducir la fricción entre el desarrollo local y la producción. Aunque la arquitectura es un monolito (Frontend y Backend en el mismo repo), se ha diseñado bajo un enfoque **API-First**. Esto garantiza que el Backend de Laravel funcione como un motor independiente que expone una API RESTful, consumida por el Frontend para la gestión de la interfaz.
+SkyManifest implementa un **sistema híbrido** que permite despliegues tanto desde archivos ZIP como desde repositorios Git, ofreciendo flexibilidad máxima a los desarrolladores. La arquitectura mantiene un enfoque **API-First** donde Laravel actúa como motor independiente exponiendo una API RESTful.
 
-### El flujo de vida de un despliegue:
+### El flujo de vida de un despliegue híbrido:
 
-1. **Input (Carga):** El usuario envía sus archivos (`.zip`) o la URL de su repositorio a través del dashboard.
-2. **Procesamiento (Service Layer):** Laravel recibe la solicitud y delega la tarea a un servicio especializado (`DeploymentService`), liberando al controlador.
-3. **Construcción de la Nube:** El sistema descomprime o clona el proyecto en un volumen compartido de Docker. Se ejecuta un proceso de limpieza estricto (sanitización), eliminando archivos de backend (.php, .env) o configuraciones del sistema para garantizar seguridad.
-4. **Enrutamiento Dinámico (Caddy Layer):** Laravel se comunica internamente con la API de **Caddy Web Server**. Le instruye crear una nueva ruta de tráfico apuntando al dominio elegido y a la carpeta del despliegue.
-5. **Despliegue (Live):** La web está en línea al instante (*Zero Downtime*) con certificados SSL automáticos gestionados por la infraestructura.
+1. **Input Híbrido:** El usuario puede elegir entre:
+   - **Carga ZIP:** Arrastra archivos directamente al dashboard
+   - **Conexión Git:** Vincula un repositorio con configuración de rama y directorio base
+
+2. **Procesamiento Inteligente:** El `DeploymentService` detecta el tipo de fuente y aplica la estrategia correspondiente:
+   - **ZIP:** Descompresión y sanitización inmediata
+   - **Git:** Clonado, checkout de rama específica y procesamiento del directorio base
+
+3. **Construcción Normalizada:** Independientemente del origen, ambos flujos convergen en un proceso unificado de limpieza y preparación en volúmenes Docker compartidos.
+
+4. **Enrutamiento Dinámico:** Caddy Web Server recibe instrucciones via API para configurar el routing y SSL automático.
+
+5. **Despliegue Live:** Zero downtime deployment con monitoreo de estado y logs detallados.
 
 ## 4. Arquitectura de Software
 
@@ -78,8 +86,14 @@ erDiagram
     Users ||--o{ Projects : "crea"
     Projects ||--o{ Deploys : "registra historial"
     Projects ||--o{ Domains : "se expone en"
+    Projects ||--o{ GitConfigs : "configura repositorio"
+    GitConfigs ||--o{ Deploys : "origina despliegues git"
 
 ```
+
+### Arquitectura de Base de Datos Híbrida
+
+La base de datos sigue la **3ra Forma Normal (3FN)** para eliminar redundancias y permitir despliegues híbridos. La separación de `git_configs` como entidad independiente permite que un proyecto pueda tener configuraciones Git opcionales, mientras mantiene compatibilidad con despliegues ZIP.
 
 ### Tablas y Estructuras
 
@@ -109,19 +123,35 @@ La unidad lógica que agrupa los despliegues de una aplicación específica.
 
 #### 3. Tabla: `deploys`
 
-El registro inmutable de cada versión subida a la nube.
+El registro inmutable de cada versión subida a la nube, con soporte híbrido para Git y ZIP.
 
 | Campo | Tipo | Descripción |
 | --- | --- | --- |
 | `id` | BIGINT (PK) | Identificador único. |
 | `project_id` | BIGINT (FK) | Relación con la tabla `projects`. |
+| `git_config_id` | BIGINT (FK, nullable) | Relación con `git_configs` (solo para deploys Git). |
+| `source_type` | ENUM | Tipo de origen: `git`, `zip`. |
+| `commit_hash` | STRING (nullable) | Hash del commit (solo para deploys Git). |
 | `status` | ENUM | Estado: `pending`, `processing`, `success`, `failed`. |
-| `log_messages` | JSON / TEXT | Bitácora de eventos del proceso (errores, éxito). |
+| `log_messages` | JSON | Bitácora de eventos del proceso (errores, éxito). |
 | `path` | STRING | Ruta física del almacenamiento en el volumen Docker. |
 | `duration_ms` | INTEGER | Tiempo de procesamiento en milisegundos. |
 | `created_at` | TIMESTAMP | Fecha del despliegue. |
 
-#### 4. Tabla: `domains`
+#### 4. Tabla: `git_configs`
+
+Configuración Git asociada a proyectos para despliegues automáticos.
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | BIGINT (PK) | Identificador único. |
+| `project_id` | BIGINT (FK) | Relación con la tabla `projects`. |
+| `repository_url` | STRING | URL del repositorio Git (ej: `https://github.com/user/repo.git`). |
+| `branch` | STRING | Rama a desplegar (default: `main`). |
+| `base_directory` | STRING | Directorio base dentro del repo (default: `/`). |
+| `created_at` | TIMESTAMP | Fecha de configuración. |
+
+#### 5. Tabla: `domains`
 
 La puerta de enlace pública para acceder a los proyectos.
 
