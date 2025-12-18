@@ -1,59 +1,135 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SkyManifest ☁️
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+> **Your private cloud, manifested.**
 
-## About Laravel
+## 1. Idea General del Proyecto
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**SkyManifest** es una plataforma de infraestructura autohospedada (*Self-Hosted*) diseñada para democratizar el despliegue de sitios web estáticos. El proyecto permite a cualquier desarrollador construir su propia "nube privada", ofreciendo una alternativa a servicios comerciales como Vercel o Netlify.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Los usuarios pueden desplegar sus aplicaciones web simplemente arrastrando un archivo `.zip` o vinculando un repositorio de Git. El núcleo del sistema orquesta la recepción del código, su sanitización y la configuración automática de servidores web seguros, todo bajo el control total del administrador de la instancia.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 2. Explicación del Nombre
 
-## Learning Laravel
+El nombre **SkyManifest** encapsula la visión de infraestructura y control del proyecto:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+* **Sky (Cielo / Nube):** Representa el entorno o ecosistema que el usuario está creando. Al no depender de nubes públicas de terceros, el usuario es dueño de su propio "cielo" digital, un espacio ilimitado y privado donde viven sus aplicaciones.
+* **Manifest (Manifiesto):** Es el registro detallado y la declaración de existencia de cada aplicación. Cada vez que un usuario sube código, está creando un "manifiesto" de carga que el sistema procesa, registra y hace visible al mundo.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 3. Explicación Detallada y Flujo
 
-## Laravel Sponsors
+El objetivo es reducir la fricción entre el desarrollo local y la producción. Aunque la arquitectura es un monolito (Frontend y Backend en el mismo repo), se ha diseñado bajo un enfoque **API-First**. Esto garantiza que el Backend de Laravel funcione como un motor independiente que expone una API RESTful, consumida por el Frontend para la gestión de la interfaz.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### El flujo de vida de un despliegue:
 
-### Premium Partners
+1. **Input (Carga):** El usuario envía sus archivos (`.zip`) o la URL de su repositorio a través del dashboard.
+2. **Procesamiento (Service Layer):** Laravel recibe la solicitud y delega la tarea a un servicio especializado (`DeploymentService`), liberando al controlador.
+3. **Construcción de la Nube:** El sistema descomprime o clona el proyecto en un volumen compartido de Docker. Se ejecuta un proceso de limpieza estricto (sanitización), eliminando archivos de backend (.php, .env) o configuraciones del sistema para garantizar seguridad.
+4. **Enrutamiento Dinámico (Caddy Layer):** Laravel se comunica internamente con la API de **Caddy Web Server**. Le instruye crear una nueva ruta de tráfico apuntando al dominio elegido y a la carpeta del despliegue.
+5. **Despliegue (Live):** La web está en línea al instante (*Zero Downtime*) con certificados SSL automáticos gestionados por la infraestructura.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 4. Arquitectura de Software
 
-## Contributing
+El proyecto utiliza **Laravel** como framework base, implementando un patrón **MVC (Modelo-Vista-Controlador)** robustecido con capas de **Repository** y **Service** para una separación de responsabilidades limpia y escalable.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### A. Estructura de Directorios y Capas
 
-## Code of Conduct
+El proyecto respeta la estructura moderna de Laravel, añadiendo capas específicas de dominio:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+* **📂 app/Http/Controllers:**
+* Puntos de entrada ligeros. Solo validan la petición HTTP y devuelven respuestas JSON estandarizadas. No contienen lógica de negocio.
 
-## Security Vulnerabilities
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+* **📂 app/Services:**
+* El cerebro de la aplicación.
+* **DeploymentService:** Maneja la lógica de archivos, descompresión, Git y limpieza.
+* **CaddyService:** Abstrae la complejidad de la API de Caddy, construyendo los JSON de configuración necesarios.
 
-## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+* **📂 app/Repositories:**
+* Capa de acceso a datos. Aísla las consultas de Eloquent, permitiendo que los servicios pidan datos ("Dame los últimos 5 deploys") sin saber cómo se obtienen.
+
+
+* **📂 app/Jobs:**
+* Manejo de colas (Queues). Tareas pesadas como "Clonar Repo" o "Descomprimir Zip" se envían aquí para no bloquear la interfaz del usuario.
+
+
+* **📂 database/migrations:**
+* Control de versiones del esquema de base de datos.
+
+
+* **📂 resources/views:**
+* Contiene el "App Shell", la vista principal que carga la aplicación SPA/Dashboard.
+
+
+
+### B. Definición de Rutas
+
+* **Ubicación:** `routes/api.php`
+* **Estrategia:** Todas las interacciones de datos ocurren aquí. Se definen endpoints RESTful agrupados, protegidos por middleware (Sanctum) y con límites de peticiones (Rate Limiting) para proteger la infraestructura.
+
+## 5. Modelos de Datos (Entidades)
+
+A continuación se detalla la estructura de la base de datos relacional.
+
+### Diagrama de Relaciones
+
+```mermaid
+erDiagram
+    Users ||--o{ Projects : "crea"
+    Projects ||--o{ Deploys : "registra historial"
+    Projects ||--o{ Domains : "se expone en"
+
+```
+
+### Tablas y Estructuras
+
+#### 1. Tabla: `users`
+
+Representa al arquitecto o dueño de los proyectos en la nube privada.
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | BIGINT (PK) | Identificador único. |
+| `name` | STRING | Nombre completo. |
+| `email` | STRING | Correo electrónico (Unique). |
+| `password` | STRING | Contraseña encriptada. |
+| `created_at` | TIMESTAMP | Fecha de registro. |
+
+#### 2. Tabla: `projects`
+
+La unidad lógica que agrupa los despliegues de una aplicación específica.
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | BIGINT (PK) | Identificador único. |
+| `user_id` | BIGINT (FK) | Relación con la tabla `users`. |
+| `name` | STRING | Nombre del proyecto (ej: "Landing Page V1"). |
+| `description` | TEXT | Descripción opcional (Null). |
+| `created_at` | TIMESTAMP | Fecha de creación. |
+
+#### 3. Tabla: `deploys`
+
+El registro inmutable de cada versión subida a la nube.
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | BIGINT (PK) | Identificador único. |
+| `project_id` | BIGINT (FK) | Relación con la tabla `projects`. |
+| `status` | ENUM | Estado: `pending`, `processing`, `success`, `failed`. |
+| `log_messages` | JSON / TEXT | Bitácora de eventos del proceso (errores, éxito). |
+| `path` | STRING | Ruta física del almacenamiento en el volumen Docker. |
+| `duration_ms` | INTEGER | Tiempo de procesamiento en milisegundos. |
+| `created_at` | TIMESTAMP | Fecha del despliegue. |
+
+#### 4. Tabla: `domains`
+
+La puerta de enlace pública para acceder a los proyectos.
+
+| Campo | Tipo | Descripción |
+| --- | --- | --- |
+| `id` | BIGINT (PK) | Identificador único. |
+| `project_id` | BIGINT (FK) | Relación con la tabla `projects`. |
+| `url` | STRING | El dominio o subdominio asignado (ej: `app.skymanifest.cloud`). |
+| `is_active` | BOOLEAN | Switch para activar/desactivar el tráfico. |
+| `ssl_status` | STRING | Estado del certificado TLS (ej: `issued`). |
+| `created_at` | TIMESTAMP | Fecha de vinculación. |
