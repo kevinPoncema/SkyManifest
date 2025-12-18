@@ -27,9 +27,4 @@ class DomainRepo{
     {
         return Domain::where('project_id', $projectId)->get();
     }
-
-    public function findByUserId(int $userId)
-    {
-        return Domain::where('user_id', $userId)->get();
-    }
 }
