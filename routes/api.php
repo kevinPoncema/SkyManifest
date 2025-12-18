@@ -1,0 +1,46 @@
+<?php
+
+use App\Http\Controllers\Api\DeployController;
+use App\Http\Controllers\Api\DomainController;
+use App\Http\Controllers\Api\GitConfigController;
+use App\Http\Controllers\Api\ProjectController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
+
+// Protected API routes
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Projects routes
+    Route::apiResource('projects', ProjectController::class);
+
+    // Git configuration routes (nested under projects)
+    Route::prefix('projects/{project}')->group(function () {
+        Route::get('git-config', [GitConfigController::class, 'show']);
+        Route::post('git-config', [GitConfigController::class, 'store']);
+
+        // Domains routes (nested under projects)
+        Route::get('domains', [DomainController::class, 'index']);
+        Route::post('domains', [DomainController::class, 'store']);
+        Route::delete('domains/{domain}', [DomainController::class, 'destroy']);
+
+        // Deploys routes (nested under projects) - Read-only
+        Route::get('deploys', [DeployController::class, 'index']);
+        Route::get('deploys/{deploy}', [DeployController::class, 'show']);
+    });
+
+});
