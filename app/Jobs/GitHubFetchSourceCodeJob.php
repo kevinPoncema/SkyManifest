@@ -29,7 +29,6 @@ class GitHubFetchSourceCodeJob implements ShouldQueue
     {
         $this->addLog("🚀 Iniciando descarga de código desde GitHub...");
         
-        // Actualizamos estado inicial
         $this->deploy->refresh();
         $this->deploy->status = 'processing';
         $this->deploy->save();
@@ -37,13 +36,19 @@ class GitHubFetchSourceCodeJob implements ShouldQueue
         try {
             $basePath = rtrim(env('DEPLOYMENT_PATH', '/var/www/sites'), '/');
             $fullPath = $basePath . '/' . $this->deploymentPath;
+            
+            // Usamos la rama definida en la base de datos o 'main' por defecto
+            $targetBranch = $this->gitConfig->branch ?? 'main';
 
             $this->addLog("📂 Ruta destino: " . $fullPath);
             $this->addLog("🔗 Repositorio: " . $this->gitConfig->repository_url);
+            $this->addLog("🌿 Rama: " . $targetBranch); // Log para confirmar
 
+            // Pasamos la rama como tercer argumento
             $gitHubService->cloneOrUpdate(
                 $this->gitConfig->repository_url,
-                $fullPath
+                $fullPath,
+                $targetBranch
             );
 
             $this->addLog("✅ Código descargado/actualizado correctamente.");

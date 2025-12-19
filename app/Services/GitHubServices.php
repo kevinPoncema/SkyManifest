@@ -10,131 +10,138 @@ use RuntimeException;
 class GitHubServices
 {
     /**
-     * Clona un repositorio. Los archivos quedarán DIRECTAMENTE en $destinationPath.
-     * No se crean subcarpetas con el nombre del repo.
+     * Clona una rama específica.
      */
-    public function cloneRepository(string $repoUrl, string $destinationPath): void
+    public function cloneRepository(string $repoUrl, string $destinationPath, string $branch): void
     {
-        // 1. Git clone falla si la carpeta existe y tiene cosas.
-        // Si existe y no es un repo (o es basura de un intento fallido), la limpiamos.
+        // 1. Limpieza preventiva
         if (File::exists($destinationPath) && !$this->isGitRepository($destinationPath)) {
-            Log::warning("La carpeta existe pero no es un repo válido, limpiando para clonar...", ['path' => $destinationPath]);
+            Log::warning("Carpeta corrupta detectada, limpiando...", ['path' => $destinationPath]);
             File::deleteDirectory($destinationPath);
         }
 
-        // 2. Aseguramos que el PADRE exista, pero dejamos que Git cree la carpeta final
-        // para evitar conflictos de "directory exists and is not empty".
         $this->ensureParentDirectoryExists($destinationPath);
 
         $command = [
             'git', 'clone',
-            '--depth', '1',          // Solo el último commit (más rápido)
-            '--single-branch',       // Solo la rama default
+            '--depth', '1',          // Shallow clone
+            '--branch', $branch,     // <--- IMPORTANTE: Forzamos la rama específica
+            '--single-branch',       // Solo descargamos esa rama (ahorra espacio)
             $repoUrl,
-            $destinationPath         // <--- ESTO asegura que no se creen subcarpetas
+            $destinationPath
         ];
 
-        // 3. Aumentamos el timeout a 300s (5 min) para repos grandes
+        // Timeout 5 min
         $process = Process::timeout(300)->run($command);
 
         if (!$process->successful()) {
             Log::error('Error crítico al clonar repositorio', [
                 'repo' => $repoUrl,
-                'destination' => $destinationPath,
+                'branch' => $branch,
                 'error' => $process->errorOutput()
             ]);
-            // Limpiamos si falló para no dejar carpetas corruptas
             File::deleteDirectory($destinationPath);
             throw new RuntimeException("Error al clonar repositorio: " . $process->errorOutput());
         }
 
         Log::info('Repositorio clonado exitosamente', [
             'repo' => $repoUrl,
-            'destination' => $destinationPath
+            'branch' => $branch
         ]);
     }
 
-    public function updateRepository(string $repositoryPath): void
+    /**
+     * Actualiza la rama específica.
+     */
+    public function updateRepository(string $repositoryPath, string $branch): void
     {
         if (!$this->isGitRepository($repositoryPath)) {
             throw new RuntimeException("Ruta inválida para update: {$repositoryPath}");
         }
 
-        // git reset --hard asegura que si hubo cambios locales (innecesarios), se descarten
-        // y quede idéntico al remoto. Es más seguro para deploys automáticos.
-        $command = 'git fetch origin && git reset --hard origin/HEAD';
+        // 1. Fetch explícito de la rama que queremos
+        // 2. Reset hard a esa rama remota
+        $command = "git fetch origin $branch && git reset --hard origin/$branch";
         
         $process = Process::path($repositoryPath)->timeout(300)->run($command);
 
         if (!$process->successful()) {
             Log::error('Error al actualizar repositorio', [
                 'path' => $repositoryPath,
+                'branch' => $branch,
                 'error' => $process->errorOutput()
             ]);
             throw new RuntimeException("Error al actualizar: " . $process->errorOutput());
         }
 
-        Log::info('Repositorio actualizado', ['path' => $repositoryPath]);
+        Log::info('Repositorio actualizado', ['path' => $repositoryPath, 'branch' => $branch]);
     }
+
+    /**
+     * Orquestador inteligente: Decide si clonar, actualizar o re-clonar (si cambió la rama/url).
+     */
+    public function cloneOrUpdate(string $repoUrl, string $destinationPath, string $branch): void
+    {
+        // Caso A: El repo ya existe...
+        if ($this->isGitRepository($destinationPath)) {
+            
+            // Verificamos URL y Rama actual
+            $urlMatches = $this->repositoryMatchesUrl($destinationPath, $repoUrl);
+            $branchMatches = $this->repositoryMatchesBranch($destinationPath, $branch);
+
+            if ($urlMatches && $branchMatches) {
+                // Todo coincide, solo actualizamos los últimos cambios
+                Log::info('Repositorio y rama coinciden, actualizando...', ['path' => $destinationPath]);
+                $this->updateRepository($destinationPath, $branch);
+                return;
+            }
+
+            // Si la URL o la RAMA cambiaron, es peligroso hacer merge/switch en un repo shallow.
+            // Es mejor borrar y clonar de cero la nueva configuración.
+            Log::warning('Cambio de configuración detectado (URL o Rama diferente). Re-clonando...', [
+                'expected_url' => $repoUrl,
+                'expected_branch' => $branch
+            ]);
+            File::deleteDirectory($destinationPath);
+        }
+        
+        // Caso B: No existe o fue borrado arriba -> Clonar de cero
+        elseif (File::exists($destinationPath)) {
+            // Existe carpeta pero no es repo git válido
+            File::deleteDirectory($destinationPath);
+        }
+
+        $this->cloneRepository($repoUrl, $destinationPath, $branch);
+    }
+
+    // --- Helpers de Verificación ---
 
     public function isGitRepository(string $path): bool
     {
         return is_dir($path . '/.git');
     }
 
-    public function getRemoteUrl(string $repositoryPath): string
+    private function repositoryMatchesUrl(string $path, string $expectedUrl): bool
     {
-        if (!$this->isGitRepository($repositoryPath)) {
-            return '';
-        }
-
-        $process = Process::path($repositoryPath)->run(['git', 'config', '--get', 'remote.origin.url']);
-
-        if (!$process->successful()) {
-            return '';
-        }
-
-        return trim($process->output());
-    }
-
-    public function repositoryExistsAndMatches(string $repositoryPath, string $expectedUrl): bool
-    {
-        if (!$this->isGitRepository($repositoryPath)) {
-            return false;
-        }
-
-        $currentUrl = $this->getRemoteUrl($repositoryPath);
+        $process = Process::path($path)->run(['git', 'config', '--get', 'remote.origin.url']);
+        if (!$process->successful()) return false;
         
-        // Normalización simple para comparar (quitar .git y slashes finales)
-        $normalize = fn($url) => rtrim(str_replace('.git', '', $url), '/');
-
+        $currentUrl = trim($process->output());
+        $normalize = fn($u) => rtrim(str_replace('.git', '', $u), '/');
+        
         return $normalize($currentUrl) === $normalize($expectedUrl);
     }
 
-    public function cloneOrUpdate(string $repoUrl, string $destinationPath): void
+    private function repositoryMatchesBranch(string $path, string $expectedBranch): bool
     {
-        // Caso 1: Ya existe y es el mismo repo -> Actualizar
-        if ($this->repositoryExistsAndMatches($destinationPath, $repoUrl)) {
-            Log::info('Repositorio coincide, actualizando...', ['path' => $destinationPath]);
-            $this->updateRepository($destinationPath);
-            return;
-        }
+        // Obtenemos la rama actual activa
+        $process = Process::path($path)->run(['git', 'rev-parse', '--abbrev-ref', 'HEAD']);
+        if (!$process->successful()) return false;
 
-        // Caso 2: Existe algo, pero es otro repo o está corrupto -> Borrar y Clonar
-        if (File::exists($destinationPath)) {
-            Log::warning('Conflicto de repositorio o URL, recreando carpeta...', ['path' => $destinationPath]);
-            // Usamos la función nativa de Laravel, mucho más segura que unlink/rmdir recursivo manual
-            File::deleteDirectory($destinationPath);
-        }
-
-        // Caso 3: No existe -> Clonar
-        $this->cloneRepository($repoUrl, $destinationPath);
+        $currentBranch = trim($process->output());
+        return $currentBranch === $expectedBranch;
     }
 
-    /**
-     * Asegura que la carpeta contenedora exista (ej: /var/www/sites)
-     * Para que git clone pueda crear la carpeta final (ej: /var/www/sites/proyecto1)
-     */
     private function ensureParentDirectoryExists(string $path): void
     {
         $parent = dirname($path);
