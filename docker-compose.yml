@@ -1,0 +1,79 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: skymanifest-app
+    container_name: skymanifest_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_NAME: "SkyManifest"
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: skymanifest
+      DB_USERNAME: skymanifest_user
+      DB_PASSWORD: secure_password
+      # Ruta interna donde Laravel guardará los sitios descomprimidos
+      DEPLOYMENT_PATH: /var/www/sites
+    volumes:
+      # Código fuente de Laravel (Correcto: apunta a la raíz)
+      - .:/var/www/html
+      # Volumen compartido para los sitios estáticos (Escritura)
+      - skymanifest_sites:/var/www/sites
+    networks:
+      - skymanifest_net
+    depends_on:
+      - db
+
+  caddy:
+    image: caddy:latest
+    container_name: skymanifest_caddy
+    restart: unless-stopped
+    ports:
+      - "88:80"
+      - "443:443"
+      - "2019:2019" # API de Administración
+    volumes:
+      # Configuración base de Caddy
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      # Datos de certificados SSL
+      - caddy_data:/data
+      # Configuración interna de Caddy
+      - caddy_config:/config
+      # Volumen compartido para los sitios estáticos (Lectura)
+      - skymanifest_sites:/var/www/sites
+      # CORRECCIÓN AQUÍ: Apuntamos a la raíz (.), igual que en 'app'
+      - .:/var/www/html
+    networks:
+      - skymanifest_net
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: skymanifest_db
+    restart: unless-stopped
+    ports:
+      - "3312:3306"
+    environment:
+      MYSQL_DATABASE: skymanifest
+      MYSQL_USER: skymanifest_user
+      MYSQL_PASSWORD: secure_password
+      MYSQL_ROOT_PASSWORD: root_password
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - skymanifest_net
+
+# --- Definición de Redes y Volúmenes ---
+networks:
+  skymanifest_net:
+    driver: bridge
+
+volumes:
+  db_data:           # Persistencia de MySQL
+  caddy_data:        # Certificados SSL de Caddy
+  caddy_config:      # Config de Caddy
+  skymanifest_sites: # webs estáticas

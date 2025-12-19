@@ -1,0 +1,12 @@
+{
+    admin :2019
+}
+
+:80 {
+    # Como mapeamos la raíz a /var/www/html, la carpeta public está aquí:
+    root * /var/www/html/public
+
+    encode gzip
+    php_fastcgi app:9000
+    file_server
+}
