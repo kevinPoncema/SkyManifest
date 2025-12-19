@@ -44,7 +44,25 @@ class Project extends Model
      */
     public function deploys(): HasMany
     {
-        return $this->hasMany(Deploy::class);
+        return $this->hasMany(Deploy::class)->orderBy('created_at', 'desc');
+    }
+
+    /**
+     * Get the latest deploy for the project.
+     */
+    public function latestDeploy(): HasOne
+    {
+        return $this->hasOne(Deploy::class)->latestOfMany();
+    }
+
+    /**
+     * Get the latest successful deploy for the project.
+     */
+    public function latestSuccessfulDeploy(): HasOne
+    {
+        return $this->hasOne(Deploy::class)
+                    ->where('status', 'success')
+                    ->latestOfMany();
     }
 
     /**

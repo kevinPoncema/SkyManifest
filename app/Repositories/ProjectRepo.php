@@ -32,7 +32,7 @@ class ProjectRepo
     public function allForUserWithStatus(int $userId)
     {
         return Project::where('user_id', $userId)
-                    ->with(['domains', 'latestDeploy'])
+                    ->with(['domains', 'deploys', 'gitConfig'])
                     ->get();
     }
 }
