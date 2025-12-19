@@ -21,16 +21,16 @@ use Illuminate\Support\Facades\Route;
 
 // Public authentication routes
 Route::prefix('auth')->group(function () {
-    Route::post('register', [AuthController::class, 'register']);
-    Route::post('login', [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register'])->name('auth.register');
+    Route::post('login', [AuthController::class, 'login'])->name('login');
 });
 
 // Protected authentication routes
 Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
-    Route::post('logout', [AuthController::class, 'logout']);
-    Route::post('refresh', [AuthController::class, 'refresh']);
-    Route::get('profile', [AuthController::class, 'profile']);
-    Route::get('me', [AuthController::class, 'me']);
+    Route::post('logout', [AuthController::class, 'logout'])->name('auth.logout');
+    Route::post('refresh', [AuthController::class, 'refresh'])->name('auth.refresh');
+    Route::get('profile', [AuthController::class, 'profile'])->name('auth.profile');
+    Route::get('me', [AuthController::class, 'me'])->name('auth.me');
 });
 
 Route::get('ping', function () {
