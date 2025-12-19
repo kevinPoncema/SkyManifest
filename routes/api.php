@@ -33,9 +33,8 @@ Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
     Route::get('me', [AuthController::class, 'me']);
 });
 
-// Legacy user endpoint (keep for compatibility)
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::get('ping', function () {
+    return response()->json(['message' => 'pong']);
 });
 
 // Protected API routes
