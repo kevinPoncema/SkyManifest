@@ -22,9 +22,10 @@ class UpdateGitConfigRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
             'repository_url' => ['sometimes', 'url', 'max:255'],
             'branch' => ['sometimes', 'string', 'max:100'],
-            'base_directory' => ['nullable', 'string', 'starts_with:/', 'max:255'],
+            'base_directory' => ['sometimes', 'nullable', 'string', 'starts_with:/', 'max:255'],
         ];
     }
 
@@ -36,6 +37,9 @@ class UpdateGitConfigRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'project_id.required' => 'El ID del proyecto es obligatorio.',
+            'project_id.integer' => 'El ID del proyecto debe ser un número entero.',
+            'project_id.exists' => 'El proyecto especificado no existe.',
             'repository_url.url' => 'La URL del repositorio debe ser válida.',
             'base_directory.starts_with' => 'El directorio base debe comenzar con "/".',
         ];

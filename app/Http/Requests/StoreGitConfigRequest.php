@@ -22,6 +22,7 @@ class StoreGitConfigRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'project_id' => ['required', 'integer', 'exists:projects,id'],
             'repository_url' => ['required', 'url', 'max:255'],
             'branch' => ['required', 'string', 'max:100'],
             'base_directory' => ['nullable', 'string', 'starts_with:/', 'max:255'],
@@ -36,6 +37,9 @@ class StoreGitConfigRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'project_id.required' => 'El ID del proyecto es obligatorio.',
+            'project_id.integer' => 'El ID del proyecto debe ser un número entero.',
+            'project_id.exists' => 'El proyecto especificado no existe.',
             'repository_url.required' => 'La URL del repositorio es obligatoria.',
             'repository_url.url' => 'La URL del repositorio debe ser válida.',
             'branch.required' => 'La rama es obligatoria.',

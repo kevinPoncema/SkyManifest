@@ -44,11 +44,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('projects', ProjectController::class);
     Route::prefix('projects/{project}')->group(function () {
         Route::get('git-config', [GitConfigController::class, 'show']);
-        Route::post('git-config', [GitConfigController::class, 'store']);
 
         // Deploys routes (nested under projects) - Read-only
         Route::get('deploys', [DeployController::class, 'index']);
     });
+
+    // Git Config routes (standalone)
+    Route::post('git-config', [GitConfigController::class, 'store']);
+    Route::put('git-config', [GitConfigController::class, 'update']);
 
     Route::get('deploys/{deploy}', [DeployController::class, 'show']);
 
