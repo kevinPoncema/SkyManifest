@@ -2,11 +2,38 @@
 
 **Versión:** 1.0  
 **Fecha:** 19 de diciembre de 2025  
-**Estado:** Prototipo
+**Estado:** Prototipo  
+**Nota:** Este es un prototipo desarrollado por una sola persona. Es posible que algunos de los requisitos no se cumplan al 100% debido a limitaciones de tiempo y scope.
 
 ---
 
-## 1. Descripción General del Proyecto
+## Introducción
+
+**SkyManifest** es una plataforma web innovadora diseñada para simplificar significativamente el proceso de despliegue de sitios web estáticos. En un mundo donde la velocidad de desarrollo y la facilidad de deployment son críticos, SkyManifest abstrae la complejidad de la infraestructura tradicional, permitiendo a desarrolladores enfocarse en lo que realmente importa: el código.
+
+Este documento especifica los requerimientos funcionales, no funcionales, casos de uso y la arquitectura técnica de la plataforma. Está dirigido a desarrolladores, arquitectos y stakeholders que participan en el proyecto.
+
+---
+
+## Tabla de Contenidos
+
+1. [Introducción](#introducción)
+2. [Descripción General del Proyecto](#descripción-general-del-proyecto)
+3. [Requerimientos Funcionales](#requerimientos-funcionales)
+4. [Requerimientos No Funcionales](#requerimientos-no-funcionales)
+5. [Diagrama de Casos de Uso](#diagrama-de-casos-de-uso)
+6. [Casos de Uso Detallados](#casos-de-uso-detallados)
+7. [Diagrama de Clases UML](#diagrama-de-clases-uml)
+8. [Diagrama de Secuencia - Despliegue Git](#diagrama-de-secuencia---despliegue-git)
+9. [Diagrama de Secuencia - Despliegue ZIP](#diagrama-de-secuencia---despliegue-zip)
+10. [Matriz RACI](#matriz-raci---responsabilidades)
+11. [Estimación de Esfuerzo](#estimación-de-esfuerzo)
+12. [Consideraciones Técnicas](#consideraciones-técnicas)
+13. [Definición de Hecho](#definición-de-hecho-dod)
+
+---
+
+## Descripción General del Proyecto
 
 **SkyManifest** es una plataforma web que simplifica el despliegue de sitios web estáticos, permitiendo a desarrolladores desplegar rápidamente proyectos desde repositorios Git o archivos ZIP, sin necesidad de gestionar infraestructura en la nube directamente.
 
@@ -35,6 +62,7 @@ Facilitar y agilizar el despliegue de sitios web estáticos mediante una interfa
 - El usuario puede crear una configuración Git vinculando un repositorio (HTTPS/SSH URL)
 - El usuario puede especificar la rama de despliegue (default: `main`)
 - El usuario puede especificar el directorio de salida del build (ej: `/dist`, `/public_html`)
+- **Importante:** El sistema espera que los archivos ya estén compilados en la carpeta `dist` (o la especificada) antes de iniciar el despliegue
 - El usuario puede listar todas las configuraciones Git de un proyecto
 - El usuario puede actualizar configuraciones Git existentes
 - El usuario puede eliminar configuraciones Git
@@ -43,7 +71,7 @@ Facilitar y agilizar el despliegue de sitios web estáticos mediante una interfa
 - El usuario puede disparar un despliegue automático desde Git
 - El sistema clona el repositorio en la rama especificada
 - El sistema ejecuta comandos de build predefinidos (npm install, npm run build)
-- El sistema extrae archivos del directorio especificado
+- El sistema extrae archivos del directorio especificado (asumiendo que ya están compilados en `dist`)
 - El sistema prepara archivos estáticos para servir
 - El sistema configura el servidor web (Caddy) con la nueva versión
 - El usuario puede ver el progreso y logs del despliegue en tiempo real
@@ -86,11 +114,8 @@ Facilitar y agilizar el despliegue de sitios web estáticos mediante una interfa
 ### RNF-001: Rendimiento
 - Despliegue de sitio estático debe completarse en menos de 5 minutos
 - Respuesta a solicitudes de API debe ser menor a 500ms
-- Servidor web debe soportar 1000+ visitantes simultáneos
 
 ### RNF-002: Disponibilidad
-- La plataforma debe estar disponible 99.5% del tiempo (SLA)
-- Los despliegues deben ser tolerantes a fallos (reintentos automáticos)
 - El almacenamiento debe estar en volumen persistente Docker
 
 ### RNF-003: Seguridad
@@ -108,16 +133,10 @@ Facilitar y agilizar el despliegue de sitios web estáticos mediante una interfa
 - Código documentado con autodocumentación en PhpDoc
 - Arquitectura en capas (Controllers, Services, Repositories)
 - Separación de responsabilidades clara
-- Tests unitarios y de integración
-
-### RNF-006: Recuperación de Fallos
-- Reintentos automáticos con backoff exponencial para operaciones de I/O
-- Logs detallados para debugging
-- Estados transaccionales en despliegues (no parcialmente completados)
 
 ---
 
-## 4. Diagrama de Casos de Uso
+## 5. Diagrama de Casos de Uso
 
 ```mermaid
 graph TD
@@ -148,7 +167,7 @@ graph TD
 
 ---
 
-## 5. Casos de Uso Detallados
+## 6. Casos de Uso Detallados
 
 ### UC-001: Registrar Nuevo Usuario
 
@@ -346,7 +365,7 @@ graph TD
 
 ---
 
-## 6. Diagrama de Clases UML
+## 7. Diagrama de Clases UML
 
 ```mermaid
 classDiagram
@@ -457,7 +476,7 @@ classDiagram
 
 ---
 
-## 7. Diagrama de Secuencia - Despliegue Git
+## 8. Diagrama de Secuencia - Despliegue Git
 
 ```mermaid
 sequenceDiagram
@@ -504,7 +523,7 @@ sequenceDiagram
 
 ---
 
-## 8. Diagrama de Secuencia - Despliegue ZIP
+## 9. Diagrama de Secuencia - Despliegue ZIP
 
 ```mermaid
 sequenceDiagram
