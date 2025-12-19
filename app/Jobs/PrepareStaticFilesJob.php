@@ -30,7 +30,6 @@ class PrepareStaticFilesJob implements ShouldQueue
     public function __construct(
         public Deploy $deploy,
         protected string $deploymentPath,
-        // 🟢 CAMBIO CLAVE: Permitimos null para despliegues vía ZIP
         protected ?GitConfig $gitConfig = null
     ) {}
 
@@ -46,20 +45,16 @@ class PrepareStaticFilesJob implements ShouldQueue
                 throw new RuntimeException("El directorio del proyecto no existe: $projectRootPath");
             }
 
-            // 🟢 LÓGICA SEGURA: Validación de nulidad
-            // Si hay GitConfig, usamos su configuración. Si es NULL (ZIP), usamos cadena vacía (raíz).
             $relativeBaseDir = '';
             
             if ($this->gitConfig) {
                 $relativeBaseDir = trim($this->gitConfig->base_directory ?? '', '/');
             }
 
-            // Solo ejecutamos la promoción si hay un directorio base definido diferente a la raíz
             if (!empty($relativeBaseDir)) {
                 $this->promoteBaseDirectory($projectRootPath, $relativeBaseDir);
             }
 
-            // Limpiar basura y archivos no permitidos
             $this->cleanNonStaticFiles($projectRootPath);
 
             $this->addLog("✨ Archivos estáticos preparados correctamente.");
@@ -85,23 +80,13 @@ class PrepareStaticFilesJob implements ShouldQueue
         $this->addLog("📂 Directorio base configurado: /$subDir");
 
         if (!File::isDirectory($sourcePath)) {
-            // Mensaje más amigable para el usuario
             throw new RuntimeException("El directorio '$subDir' no existe. Verifica tu configuración o que el build se haya generado correctamente.");
         }
 
-        // Usamos un nombre temporal único para evitar colisiones
         $tempPath = $rootPath . '_temp_move_' . uniqid();
-        
-        // 1. Mover contenido útil a temporal
         File::moveDirectory($sourcePath, $tempPath);
-        
-        // 2. Limpiar todo lo demás en la raíz (código fuente, node_modules, etc)
         File::cleanDirectory($rootPath);
-        
-        // 3. Devolver contenido útil a la raíz
         File::copyDirectory($tempPath, $rootPath);
-        
-        // 4. Borrar temporal
         File::deleteDirectory($tempPath);
 
         $this->addLog("📦 Contenido promovido a la raíz.");
@@ -118,15 +103,12 @@ class PrepareStaticFilesJob implements ShouldQueue
         $deletedCount = 0;
         
         foreach ($files as $file) {
-            // Verificar extensión contra lista blanca
             if (!in_array(strtolower($file->getExtension()), self::ALLOWED_EXTENSIONS)) {
                 File::delete($file->getRealPath());
                 $deletedCount++;
             }
         }
-
-        // Carpetas a eliminar incondicionalmente
-        // Agregamos __MACOSX que es común en ZIPs subidos desde Mac
+        
         $dirsToDelete = ['.git', '.github', '.vscode', 'node_modules', 'vendor', '__MACOSX'];
         
         foreach ($dirsToDelete as $dir) {

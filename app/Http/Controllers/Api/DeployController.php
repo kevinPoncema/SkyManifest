@@ -21,7 +21,6 @@ class DeployController extends Controller
      */
     public function index(Request $request, int $projectId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -66,7 +65,6 @@ class DeployController extends Controller
     public function deployFromGithub(Request $request, int $projectId): JsonResponse
     {
         try {
-            // Verify project belongs to authenticated user
             $project = $this->projectService->getById($projectId);
             if (!$project || $project->user_id !== $request->user()->id) {
                 return response()->json([

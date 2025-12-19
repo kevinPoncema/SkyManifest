@@ -52,8 +52,6 @@ class ProjectController extends Controller
     public function show(Request $request, int $id): JsonResponse
     {
         $project = $this->projectService->getById($id);
-
-        // Verify project belongs to authenticated user
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
@@ -74,8 +72,6 @@ class ProjectController extends Controller
     public function update(UpdateProjectRequest $request, int $id): JsonResponse
     {
         $project = $this->projectService->getById($id);
-
-        // Verify project belongs to authenticated user
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
@@ -99,7 +95,6 @@ class ProjectController extends Controller
     {
         $project = $this->projectService->getById($id);
 
-        // Verify project belongs to authenticated user
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,

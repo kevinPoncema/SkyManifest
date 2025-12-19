@@ -22,7 +22,6 @@ class GitConfigController extends Controller
      */
     public function show(Request $request, int $projectId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -53,8 +52,6 @@ class GitConfigController extends Controller
     public function store(StoreGitConfigRequest $request): JsonResponse
     {
         $projectId = $request->input('project_id');
-        
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -90,8 +87,6 @@ class GitConfigController extends Controller
     public function update(UpdateGitConfigRequest $request): JsonResponse
     {
         $projectId = $request->input('project_id');
-        
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([

@@ -12,7 +12,7 @@ class CaddyService
 
     public function __construct()
     {
-        // Obtiene la URL del .env. Default: http://caddy:2019
+        // get default url
         $this->baseUrl = rtrim(config('services.caddy.host', env('CADDY_HOST', 'http://caddy:2019')), '/');
     }
 
@@ -22,7 +22,6 @@ class CaddyService
     public function syncDomains(array $domainList, string $path): void
     {
         Log::info("Iniciando sincronización de dominios para: $path", ['domains' => $domainList]);
-        
         $currentDomains = $this->getDomainsPointingToPath($path);
         $domainsToDelete = array_diff($currentDomains, $domainList);
         foreach ($domainsToDelete as $domain) {
@@ -44,7 +43,6 @@ class CaddyService
     {
         $routeId = $this->getRouteId($domain);
         
-        // Configuración JSON para Caddy (Reverse Proxy + File Server)
         $config = [
             "@id" => $routeId,
             "match" => [["host" => [$domain]]],

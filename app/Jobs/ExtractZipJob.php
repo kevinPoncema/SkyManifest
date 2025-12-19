@@ -58,8 +58,6 @@ class ExtractZipJob implements ShouldQueue
             $targetPath = $basePath . '/' . $this->deploymentPath;
 
             $this->addLog("📂 Descomprimiendo en: $targetPath");
-
-            // 4. Limpiar carpeta destino si existe (Estrategia de Sobreescritura Limpia)
             if (File::exists($targetPath)) {
                 File::cleanDirectory($targetPath);
             } else {
