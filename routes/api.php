@@ -41,19 +41,15 @@ Route::get('ping', function () {
 Route::middleware('auth:sanctum')->group(function () {
 
     // Projects routes
-    Route::apiResource('projects', ProjectController::class);    // Git configuration routes (nested under projects)
+    Route::apiResource('projects', ProjectController::class);
     Route::prefix('projects/{project}')->group(function () {
         Route::get('git-config', [GitConfigController::class, 'show']);
         Route::post('git-config', [GitConfigController::class, 'store']);
 
-        // Domains routes (nested under projects) - Full CRUD
-        Route::apiResource('domains', DomainController::class)->parameters([
-            'domains' => 'domain'
-        ]);
-
         // Deploys routes (nested under projects) - Read-only
         Route::get('deploys', [DeployController::class, 'index']);
-        Route::get('deploys/{deploy}', [DeployController::class, 'show']);
     });
+
+    Route::get('deploys/{deploy}', [DeployController::class, 'show']);
 
 });

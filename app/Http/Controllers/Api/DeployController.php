@@ -41,20 +41,11 @@ class DeployController extends Controller
     /**
      * Display the specified deployment details.
      */
-    public function show(Request $request, int $projectId, int $deployId): JsonResponse
+    public function show(int $deployId): JsonResponse
     {
-        // Verify project belongs to authenticated user
-        $project = $this->projectService->getById($projectId);
-        if (!$project || $project->user_id !== $request->user()->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Proyecto no encontrado.'
-            ], 404);
-        }
-
         $deploy = $this->deployService->getDeployDetails($deployId);
 
-        if (!$deploy || $deploy->project_id !== $projectId) {
+        if (!$deploy) {
             return response()->json([
                 'success' => false,
                 'message' => 'Despliegue no encontrado.'
