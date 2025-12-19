@@ -10,10 +10,11 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage; // Importante para manejar el ZIP temporal
+use Illuminate\Support\Facades\Storage;
 use ZipArchive;
 use Exception;
 use RuntimeException;
+use Illuminate\Support\Sleep;
 
 class ExtractZipJob implements ShouldQueue
 {
@@ -35,28 +36,41 @@ class ExtractZipJob implements ShouldQueue
         $this->deploy->save();
 
         try {
-            // 1. Localizar el archivo ZIP en el disco
-            // storage_path('app/...') nos da la ruta absoluta en el sistema
-            $absoluteZipPath = storage_path('app/' . $this->zipFilePath);
-
-            if (!file_exists($absoluteZipPath)) {
-                throw new RuntimeException("El archivo ZIP temporal no se encuentra: $absoluteZipPath");
+            // 1. Verificar que el archivo ZIP exista (con reintentos)
+            // En Docker, a veces hay delay en sincronización de archivos
+            $maxRetries = 3;
+            $retryCount = 0;
+            
+            while ($retryCount < $maxRetries) {
+                if (Storage::exists($this->zipFilePath)) {
+                    break;
+                }
+                $retryCount++;
+                if ($retryCount < $maxRetries) {
+                    $this->addLog("⏳ Archivo no encontrado, reintentando ({$retryCount}/{$maxRetries})...");
+                    Sleep::milliseconds(500);
+                } else {
+                    throw new RuntimeException("El archivo ZIP temporal no se encuentra después de {$maxRetries} intentos: {$this->zipFilePath}");
+                }
             }
+            
+            // 2. Localizar el archivo ZIP usando Storage
+            $absoluteZipPath = Storage::path($this->zipFilePath);
 
-            // 2. Definir ruta de destino (Volumen compartido)
+            // 3. Definir ruta de destino (Volumen compartido)
             $basePath = rtrim(env('DEPLOYMENT_PATH', '/var/www/sites'), '/');
             $targetPath = $basePath . '/' . $this->deploymentPath;
 
             $this->addLog("📂 Descomprimiendo en: $targetPath");
 
-            // 3. Limpiar carpeta destino si existe (Estrategia de Sobreescritura Limpia)
+            // 4. Limpiar carpeta destino si existe (Estrategia de Sobreescritura Limpia)
             if (File::exists($targetPath)) {
                 File::cleanDirectory($targetPath);
             } else {
                 File::makeDirectory($targetPath, 0755, true);
             }
 
-            // 4. Descomprimir
+            // 5. Descomprimir
             $zip = new ZipArchive;
             if ($zip->open($absoluteZipPath) === TRUE) {
                 $zip->extractTo($targetPath);
@@ -66,9 +80,10 @@ class ExtractZipJob implements ShouldQueue
                 throw new RuntimeException("No se pudo abrir el archivo ZIP. Puede estar corrupto.");
             }
 
-            // 5. Limpieza del archivo temporal (Ya no lo necesitamos)
-            // Usamos unlink para borrar el ZIP de storage/app/temp_zips
-            if (unlink($absoluteZipPath)) {
+            // 6. Limpieza del archivo temporal (Ya no lo necesitamos)
+            // Usar Storage para eliminar de forma segura
+            if (Storage::exists($this->zipFilePath)) {
+                Storage::delete($this->zipFilePath);
                 $this->addLog("🧹 Archivo ZIP temporal eliminado.");
             }
 
@@ -79,8 +94,8 @@ class ExtractZipJob implements ShouldQueue
             $this->deploy->save();
             
             // Intentamos borrar el zip aunque falle, para no llenar el disco
-            if (isset($absoluteZipPath) && file_exists($absoluteZipPath)) {
-                unlink($absoluteZipPath);
+            if (Storage::exists($this->zipFilePath)) {
+                Storage::delete($this->zipFilePath);
             }
             
             throw $e;

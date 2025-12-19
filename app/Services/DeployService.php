@@ -6,6 +6,7 @@ use App\Models\Deploy;
 use App\Models\GitConfig;
 use App\Jobs\GitHubFetchSourceCodeJob;
 use App\Jobs\PrepareStaticFilesJob;
+use App\Jobs\ExtractZipJob;
 use App\Jobs\ConfigureCaddyJob;
 use App\Repositories\DeployRepo;
 use App\Repositories\GitConfigRepo;
