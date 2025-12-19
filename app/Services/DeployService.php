@@ -127,58 +127,43 @@ class DeployService
      * 
      * @throws RuntimeException si no hay dominios configurados
      */
-    public function deployWithZip(int $projectId, string $projectName): Deploy
+   public function deployWithZip(int $projectId, string $projectName, string $zipFilePath): Deploy
     {
-        Log::info('Iniciando proceso de despliegue desde ZIP', [
-            'project_id' => $projectId,
-            'project_name' => $projectName
-        ]);
+        Log::info('Iniciando proceso de despliegue desde ZIP', ['project' => $projectName]);
 
-        // Obtener dominios activos
         $domains = $this->domainRepo->findActiveByProjectId($projectId);
         if ($domains->isEmpty()) {
             throw new RuntimeException('No hay dominios activos configurados para este proyecto.');
         }
 
-        // Generate deployment path
-        $deploymentPath = "www." . str_slug($projectName);
+        // Usamos Str::slug para la carpeta
+        $deploymentPath = "www." . Str::slug($projectName);
 
-        // Crear registro de Deploy
         $deploy = Deploy::create([
             'project_id' => $projectId,
             'status' => 'pending',
-            'source_type' => 'zip',
+            'source_type' => 'zip', // Asegúrate de que tu DB acepte 'zip'
             'path' => $deploymentPath,
-            'log_messages' => ['Despliegue iniciado desde archivo ZIP'],
-        ]);
-
-        Log::info('Registro de Deploy creado exitosamente', [
-            'deploy_id' => $deploy->id,
-            'project_id' => $projectId,
-            'deployment_path' => $deploymentPath,
+            'log_messages' => ['[' . now()->toTimeString() . '] Despliegue iniciado desde archivo ZIP'],
         ]);
 
         try {
-            // Disparar cadena de jobs (sin GitHubFetchSourceCodeJob)
+            // CADENA DE JOBS PARA ZIP
             Bus::chain([
-                new PrepareStaticFilesJob($deploy, $deploymentPath),
+                new ExtractZipJob($deploy, $zipFilePath, $deploymentPath),
+                new PrepareStaticFilesJob($deploy, $deploymentPath, null),
                 new ConfigureCaddyJob($deploy, $deploymentPath, $domains),
             ])->dispatch();
 
-            Log::info('Cadena de jobs despachada exitosamente', [
-                'deploy_id' => $deploy->id,
-            ]);
+            Log::info("Jobs ZIP despachados para Deploy ID: {$deploy->id}");
 
         } catch (\Exception $e) {
-            Log::error('Error al disparar jobs de despliegue', [
-                'deploy_id' => $deploy->id,
-                'error' => $e->getMessage()
-            ]);
-
-            // Marcar deploy como fallido
-            $this->markAsFailed($deploy, 'Error al iniciar los jobs de despliegue: ' . $e->getMessage());
+            $deploy->status = 'failed';
+            $deploy->log_messages = array_merge($deploy->log_messages, ['Error inicial: ' . $e->getMessage()]);
+            $deploy->save();
+            Storage::delete($zipFilePath);
             
-            throw new RuntimeException('Error al iniciar los jobs de despliegue: ' . $e->getMessage());
+            throw $e;
         }
 
         return $deploy;

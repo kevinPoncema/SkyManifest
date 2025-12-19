@@ -101,35 +101,37 @@ class DeployController extends Controller
      */
     public function deployFromZip(Request $request, int $projectId): JsonResponse
     {
+        $request->validate([
+            'file' => 'required|file|mimes:zip|max:51200', // Max 50MB
+        ]);
+
         try {
-            // Verify project belongs to authenticated user
+            // Verify project... (tu lógica de siempre)
             $project = $this->projectService->getById($projectId);
             if (!$project || $project->user_id !== $request->user()->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Proyecto no encontrado.'
-                ], 404);
+                return response()->json(['message' => 'Proyecto no encontrado.'], 404);
             }
 
-            // Delegar todo el proceso al servicio
-            $deploy = $this->deployService->deployWithZip($projectId, $project->name);
+            // 2. Guardar el archivo temporalmente
+            // Esto lo guarda en /storage/app/temp_zips/nombre_aleatorio.zip
+            if ($request->hasFile('file')) {
+                $path = $request->file('file')->store('temp_zips');
+            } else {
+                throw new \Exception("No se recibió ningún archivo.");
+            }
+
+            // 3. Llamar al servicio pasando la ruta
+            $deploy = $this->deployService->deployWithZip($projectId, $project->name, $path);
 
             return response()->json([
                 'success' => true,
                 'data' => $deploy,
-                'message' => 'Despliegue desde ZIP iniciado exitosamente.'
+                'message' => 'Despliegue desde ZIP iniciado. El archivo se procesará en segundo plano.'
             ], 201);
 
         } catch (\Exception $e) {
-            Log::error('Error al iniciar despliegue desde ZIP', [
-                'project_id' => $projectId,
-                'error' => $e->getMessage()
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+            Log::error('Error deploy ZIP', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
 }
