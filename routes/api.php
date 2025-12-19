@@ -54,6 +54,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('git-config', [GitConfigController::class, 'update']);
 
     Route::get('deploys/{deploy}', [DeployController::class, 'show']);
-    Route::post('deploy/github', [DeployController::class, 'deployFromGithub']);
-    Route::post('deploy/zip', [DeployController::class, 'deployFromZip']);
+    Route::post('deploy/github/{project}', [DeployController::class, 'deployFromGithub']);
+    Route::post('deploy/zip/{project}', [DeployController::class, 'deployFromZip']);
 });

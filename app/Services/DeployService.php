@@ -15,6 +15,7 @@ use RuntimeException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Collection as SupportCollection;
+use Illuminate\Support\Str;
 
 class DeployService
 {
@@ -86,13 +87,13 @@ class DeployService
     if ($domains->isEmpty()) {
         throw new RuntimeException('No hay dominios activos para desplegar.');
     }
-    $deploymentPath = "www." . str_slug($projectName);
+    $deploymentPath = "www." . Str::slug($projectName);
 
     $deploy = Deploy::create([
         'project_id' => $projectId,
         'git_config_id' => $gitConfig->id,
         'status' => 'pending',
-        'source_type' => 'github',
+        'source_type' => 'git',
         'path' => $deploymentPath,
         'log_messages' => ['[' . now()->toTimeString() . '] Despliegue iniciado desde GitHub'],
     ]);
