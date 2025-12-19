@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DeployController;
 use App\Http\Controllers\Api\DomainController;
 use App\Http\Controllers\Api\GitConfigController;
@@ -18,6 +19,21 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Public authentication routes
+Route::prefix('auth')->group(function () {
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('login', [AuthController::class, 'login']);
+});
+
+// Protected authentication routes
+Route::middleware('auth:sanctum')->prefix('auth')->group(function () {
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('refresh', [AuthController::class, 'refresh']);
+    Route::get('profile', [AuthController::class, 'profile']);
+    Route::get('me', [AuthController::class, 'me']);
+});
+
+// Legacy user endpoint (keep for compatibility)
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
