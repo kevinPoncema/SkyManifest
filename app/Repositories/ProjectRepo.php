@@ -15,7 +15,9 @@ class ProjectRepo
 
     public function findById(int $id): ?Project
     {
-        return Project::findOrFail($id);
+        return Project::where('id', $id)
+                    ->with(['domains', 'deploys', 'gitConfig'])
+                    ->firstOrFail();
     }
 
     public function update(Project $project, array $data): Project

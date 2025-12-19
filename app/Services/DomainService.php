@@ -39,6 +39,23 @@ class DomainService
     }
 
     /**
+     * Update a domain by ID.
+     */
+    public function update(int $domainId, array $data): Domain
+    {
+        $domain = $this->domainRepo->findById($domainId);
+        return $this->domainRepo->update($domain, $data);
+    }
+
+    /**
+     * Get domain by ID.
+     */
+    public function getById(int $domainId): Domain
+    {
+        return $this->domainRepo->findById($domainId);
+    }
+
+    /**
      * Get active domains for a project.
      */
     public function getActiveByProject(int $projectId): Collection

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDomainRequest;
+use App\Http\Requests\UpdateDomainRequest;
 use App\Services\DomainService;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +61,84 @@ class DomainController extends Controller
             'data' => $domain,
             'message' => 'Dominio creado exitosamente.'
         ], 201);
+    }
+
+    /**
+     * Display the specified domain.
+     */
+    public function show(Request $request, int $projectId, int $domainId): JsonResponse
+    {
+        // Verify project belongs to authenticated user
+        $project = $this->projectService->getById($projectId);
+        if (!$project || $project->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proyecto no encontrado.'
+            ], 404);
+        }
+
+        try {
+            $domain = $this->domainService->getById($domainId);
+            
+            // Verify domain belongs to the project
+            if ($domain->project_id !== $projectId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dominio no encontrado.'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $domain,
+                'message' => 'Dominio obtenido exitosamente.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Dominio no encontrado.'
+            ], 404);
+        }
+    }
+
+    /**
+     * Update the specified domain.
+     */
+    public function update(UpdateDomainRequest $request, int $projectId, int $domainId): JsonResponse
+    {
+        // Verify project belongs to authenticated user
+        $project = $this->projectService->getById($projectId);
+        if (!$project || $project->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Proyecto no encontrado.'
+            ], 404);
+        }
+
+        try {
+            $domain = $this->domainService->getById($domainId);
+            
+            // Verify domain belongs to the project
+            if ($domain->project_id !== $projectId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Dominio no encontrado.'
+                ], 404);
+            }
+
+            $updatedDomain = $this->domainService->update($domainId, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'data' => $updatedDomain,
+                'message' => 'Dominio actualizado exitosamente.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el dominio.'
+            ], 500);
+        }
     }
 
     /**
