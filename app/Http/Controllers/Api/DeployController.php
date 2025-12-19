@@ -106,21 +106,18 @@ class DeployController extends Controller
         ]);
 
         try {
-            // Verify project... (tu lógica de siempre)
             $project = $this->projectService->getById($projectId);
             if (!$project || $project->user_id !== $request->user()->id) {
                 return response()->json(['message' => 'Proyecto no encontrado.'], 404);
             }
 
-            // 2. Guardar el archivo temporalmente
-            // Esto lo guarda en /storage/app/temp_zips/nombre_aleatorio.zip
+            // temporal save the uploaded zip file
             if ($request->hasFile('file')) {
                 $path = $request->file('file')->store('temp_zips');
             } else {
                 throw new \Exception("No se recibió ningún archivo.");
             }
 
-            // 3. Llamar al servicio pasando la ruta
             $deploy = $this->deployService->deployWithZip($projectId, $project->name, $path);
 
             return response()->json([

@@ -137,19 +137,17 @@ class DeployService
             throw new RuntimeException('No hay dominios activos configurados para este proyecto.');
         }
 
-        // Usamos Str::slug para la carpeta
         $deploymentPath = "www." . Str::slug($projectName);
 
         $deploy = Deploy::create([
             'project_id' => $projectId,
             'status' => 'pending',
-            'source_type' => 'zip', // Asegúrate de que tu DB acepte 'zip'
+            'source_type' => 'zip',
             'path' => $deploymentPath,
             'log_messages' => ['[' . now()->toTimeString() . '] Despliegue iniciado desde archivo ZIP'],
         ]);
 
         try {
-            // CADENA DE JOBS PARA ZIP
             Bus::chain([
                 new ExtractZipJob($deploy, $zipFilePath, $deploymentPath),
                 new PrepareStaticFilesJob($deploy, $deploymentPath, null),

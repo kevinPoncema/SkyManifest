@@ -24,14 +24,13 @@ class GitHubServices
 
         $command = [
             'git', 'clone',
-            '--depth', '1',          // Shallow clone
-            '--branch', $branch,     // <--- IMPORTANTE: Forzamos la rama específica
-            '--single-branch',       // Solo descargamos esa rama (ahorra espacio)
+            '--depth', '1',
+            '--branch', $branch,
+            '--single-branch',
             $repoUrl,
             $destinationPath
         ];
 
-        // Timeout 5 min
         $process = Process::timeout(300)->run($command);
 
         if (!$process->successful()) {
@@ -59,8 +58,6 @@ class GitHubServices
             throw new RuntimeException("Ruta inválida para update: {$repositoryPath}");
         }
 
-        // 1. Fetch explícito de la rama que queremos
-        // 2. Reset hard a esa rama remota
         $command = "git fetch origin $branch && git reset --hard origin/$branch";
         
         $process = Process::path($repositoryPath)->timeout(300)->run($command);
@@ -82,22 +79,17 @@ class GitHubServices
      */
     public function cloneOrUpdate(string $repoUrl, string $destinationPath, string $branch): void
     {
-        // Caso A: El repo ya existe...
         if ($this->isGitRepository($destinationPath)) {
             
-            // Verificamos URL y Rama actual
             $urlMatches = $this->repositoryMatchesUrl($destinationPath, $repoUrl);
             $branchMatches = $this->repositoryMatchesBranch($destinationPath, $branch);
 
             if ($urlMatches && $branchMatches) {
-                // Todo coincide, solo actualizamos los últimos cambios
                 Log::info('Repositorio y rama coinciden, actualizando...', ['path' => $destinationPath]);
                 $this->updateRepository($destinationPath, $branch);
                 return;
             }
 
-            // Si la URL o la RAMA cambiaron, es peligroso hacer merge/switch en un repo shallow.
-            // Es mejor borrar y clonar de cero la nueva configuración.
             Log::warning('Cambio de configuración detectado (URL o Rama diferente). Re-clonando...', [
                 'expected_url' => $repoUrl,
                 'expected_branch' => $branch
@@ -105,16 +97,13 @@ class GitHubServices
             File::deleteDirectory($destinationPath);
         }
         
-        // Caso B: No existe o fue borrado arriba -> Clonar de cero
         elseif (File::exists($destinationPath)) {
-            // Existe carpeta pero no es repo git válido
             File::deleteDirectory($destinationPath);
         }
 
         $this->cloneRepository($repoUrl, $destinationPath, $branch);
     }
 
-    // --- Helpers de Verificación ---
 
     public function isGitRepository(string $path): bool
     {
@@ -134,7 +123,6 @@ class GitHubServices
 
     private function repositoryMatchesBranch(string $path, string $expectedBranch): bool
     {
-        // Obtenemos la rama actual activa
         $process = Process::path($path)->run(['git', 'rev-parse', '--abbrev-ref', 'HEAD']);
         if (!$process->successful()) return false;
 

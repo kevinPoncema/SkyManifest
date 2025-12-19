@@ -23,8 +23,8 @@ class ExtractZipJob implements ShouldQueue
 
     public function __construct(
         public Deploy $deploy,
-        protected string $zipFilePath, // Ruta relativa en storage/app (ej: temp_zips/xyz.zip)
-        protected string $deploymentPath // Ruta destino final (ej: www.mi-proyecto)
+        protected string $zipFilePath, // temp zip
+        protected string $deploymentPath 
     ) {}
 
     public function handle(): void
@@ -36,8 +36,6 @@ class ExtractZipJob implements ShouldQueue
         $this->deploy->save();
 
         try {
-            // 1. Verificar que el archivo ZIP exista (con reintentos)
-            // En Docker, a veces hay delay en sincronización de archivos
             $maxRetries = 3;
             $retryCount = 0;
             
@@ -54,10 +52,8 @@ class ExtractZipJob implements ShouldQueue
                 }
             }
             
-            // 2. Localizar el archivo ZIP usando Storage
             $absoluteZipPath = Storage::path($this->zipFilePath);
 
-            // 3. Definir ruta de destino (Volumen compartido)
             $basePath = rtrim(env('DEPLOYMENT_PATH', '/var/www/sites'), '/');
             $targetPath = $basePath . '/' . $this->deploymentPath;
 
@@ -70,7 +66,6 @@ class ExtractZipJob implements ShouldQueue
                 File::makeDirectory($targetPath, 0755, true);
             }
 
-            // 5. Descomprimir
             $zip = new ZipArchive;
             if ($zip->open($absoluteZipPath) === TRUE) {
                 $zip->extractTo($targetPath);
@@ -80,8 +75,7 @@ class ExtractZipJob implements ShouldQueue
                 throw new RuntimeException("No se pudo abrir el archivo ZIP. Puede estar corrupto.");
             }
 
-            // 6. Limpieza del archivo temporal (Ya no lo necesitamos)
-            // Usar Storage para eliminar de forma segura
+            // cleaning temp file
             if (Storage::exists($this->zipFilePath)) {
                 Storage::delete($this->zipFilePath);
                 $this->addLog("🧹 Archivo ZIP temporal eliminado.");
@@ -93,7 +87,7 @@ class ExtractZipJob implements ShouldQueue
             $this->deploy->status = 'failed';
             $this->deploy->save();
             
-            // Intentamos borrar el zip aunque falle, para no llenar el disco
+            // try to delete the temp file if it still exists
             if (Storage::exists($this->zipFilePath)) {
                 Storage::delete($this->zipFilePath);
             }
