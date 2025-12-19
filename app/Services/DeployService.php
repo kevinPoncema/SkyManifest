@@ -75,74 +75,47 @@ class DeployService
      * @throws RuntimeException si falta configuración o dominios
      */
     public function deployWithGithub(int $projectId, string $projectName): Deploy
-    {
-        Log::info('Iniciando proceso de despliegue desde GitHub', [
-            'project_id' => $projectId,
-            'project_name' => $projectName
-        ]);
-
-        // Obtener configuración de Git
-        $gitConfig = $this->gitConfigRepo->findByProjectId($projectId);
-        if (!$gitConfig) {
-            throw new RuntimeException('Configuración de Git no encontrada para este proyecto.');
-        }
-
-        // Validar que la URL del repositorio sea válida
-        if (empty($gitConfig->repository_url)) {
-            throw new RuntimeException('URL del repositorio no configurada en la configuración de Git.');
-        }
-
-        // Obtener dominios activos
-        $domains = $this->domainRepo->findActiveByProjectId($projectId);
-        if ($domains->isEmpty()) {
-            throw new RuntimeException('No hay dominios activos configurados para este proyecto.');
-        }
-
-        // Generate deployment path
-        $deploymentPath = "www." . str_slug($projectName);
-
-        // Crear registro de Deploy
-        $deploy = Deploy::create([
-            'project_id' => $projectId,
-            'git_config_id' => $gitConfig->id,
-            'status' => 'pending',
-            'source_type' => 'github',
-            'path' => $deploymentPath,
-            'log_messages' => ['Despliegue iniciado desde GitHub'],
-        ]);
-
-        Log::info('Registro de Deploy creado exitosamente', [
-            'deploy_id' => $deploy->id,
-            'project_id' => $projectId,
-            'deployment_path' => $deploymentPath,
-        ]);
-
-        try {
-            // Disparar cadena de jobs
-            Bus::chain([
-                new GitHubFetchSourceCodeJob($deploy, $gitConfig),
-                new PrepareStaticFilesJob($deploy, $deploymentPath),
-                new ConfigureCaddyJob($deploy, $deploymentPath, $domains),
-            ])->dispatch();
-
-            Log::info('Cadena de jobs despachada exitosamente', [
-                'deploy_id' => $deploy->id,
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error al disparar jobs de despliegue', [
-                'deploy_id' => $deploy->id,
-                'error' => $e->getMessage()
-            ]);
-
-            // Marcar deploy como fallido
-            $this->markAsFailed($deploy, 'Error al iniciar los jobs de despliegue: ' . $e->getMessage());
-            
-            throw new RuntimeException('Error al iniciar los jobs de despliegue: ' . $e->getMessage());
-        }
-
-        return $deploy;
+{
+    Log::info("Iniciando despliegue GitHub para proyecto: $projectId");
+    $gitConfig = $this->gitConfigRepo->findByProjectId($projectId);
+    if (!$gitConfig || empty($gitConfig->repository_url)) {
+        throw new RuntimeException('Repositorio Git no configurado.');
     }
+
+    $domains = $this->domainRepo->findActiveByProjectId($projectId);
+    if ($domains->isEmpty()) {
+        throw new RuntimeException('No hay dominios activos para desplegar.');
+    }
+    $deploymentPath = "www." . str_slug($projectName);
+
+    $deploy = Deploy::create([
+        'project_id' => $projectId,
+        'git_config_id' => $gitConfig->id,
+        'status' => 'pending',
+        'source_type' => 'github',
+        'path' => $deploymentPath,
+        'log_messages' => ['[' . now()->toTimeString() . '] Despliegue iniciado desde GitHub'],
+    ]);
+
+    try {
+        Bus::chain([
+            new GitHubFetchSourceCodeJob($deploy, $gitConfig, $deploymentPath),
+            new PrepareStaticFilesJob($deploy, $deploymentPath, $gitConfig),
+            new ConfigureCaddyJob($deploy, $deploymentPath, $domains),
+        ])->dispatch();
+
+        Log::info("Jobs despachados para Deploy ID: {$deploy->id}");
+
+    } catch (\Exception $e) {
+        $deploy->status = 'failed';
+        $deploy->log_messages = array_merge($deploy->log_messages, ['Error inicial: ' . $e->getMessage()]);
+        $deploy->save();
+        
+        throw $e;
+    }
+
+    return $deploy;
+}
 
     /**
      * Realiza todo el proceso de despliegue desde ZIP
