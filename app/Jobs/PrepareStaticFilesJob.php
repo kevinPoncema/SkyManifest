@@ -21,6 +21,7 @@ class PrepareStaticFilesJob implements ShouldQueue
     use InteractsWithDeployLogs;
 
     protected const ALLOWED_EXTENSIONS = [
+        // Static files allowed in deployment
         'html', 'htm', 'css', 'js', 'mjs', 'map', 'json', 'xml', 'txt',
         'ico', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp',
         'woff', 'woff2', 'ttf', 'eot', 'otf',
@@ -72,7 +73,7 @@ class PrepareStaticFilesJob implements ShouldQueue
     }
 
     /**
-     * Mueve el contenido de una subcarpeta (ej: /dist) a la raíz.
+     * Moves the content of a subdirectory (e.g., /dist) to the root.
      */
     protected function promoteBaseDirectory(string $rootPath, string $subDir): void
     {
@@ -93,7 +94,7 @@ class PrepareStaticFilesJob implements ShouldQueue
     }
 
     /**
-     * Elimina todo lo que no sea necesario para producción.
+     * Removes everything that is not necessary for production.
      */
     protected function cleanNonStaticFiles(string $path): void
     {

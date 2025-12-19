@@ -10,11 +10,11 @@ use RuntimeException;
 class GitHubServices
 {
     /**
-     * Clona una rama específica.
+     * Clones a specific branch.
      */
     public function cloneRepository(string $repoUrl, string $destinationPath, string $branch): void
     {
-        // 1. Limpieza preventiva
+        // 1. Preventive cleanup
         if (File::exists($destinationPath) && !$this->isGitRepository($destinationPath)) {
             Log::warning("Carpeta corrupta detectada, limpiando...", ['path' => $destinationPath]);
             File::deleteDirectory($destinationPath);
@@ -50,7 +50,7 @@ class GitHubServices
     }
 
     /**
-     * Actualiza la rama específica.
+     * Updates the specific branch.
      */
     public function updateRepository(string $repositoryPath, string $branch): void
     {
@@ -75,7 +75,7 @@ class GitHubServices
     }
 
     /**
-     * Orquestador inteligente: Decide si clonar, actualizar o re-clonar (si cambió la rama/url).
+     * Smart orchestrator: Decides whether to clone, update, or re-clone (if branch/url changed).
      */
     public function cloneOrUpdate(string $repoUrl, string $destinationPath, string $branch): void
     {

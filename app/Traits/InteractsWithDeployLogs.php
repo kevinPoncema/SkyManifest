@@ -10,7 +10,7 @@ use App\Models\Deploy;
 trait InteractsWithDeployLogs
 {
     /**
-     * Agrega un mensaje al log del deploy asegurando la persistencia de datos previos.
+     * Adds a message to the deploy log ensuring persistence of previous data.
      */
     protected function addLog(string $message): void
     {

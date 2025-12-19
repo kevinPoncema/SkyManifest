@@ -67,14 +67,14 @@ class DeployService
     }
 
     /**
-     * Realiza todo el proceso de despliegue desde GitHub
-     * 1. Obtiene la configuración de Git
-     * 2. Obtiene los dominios activos
-     * 3. Valida que los datos sean válidos
-     * 4. Crea el registro de Deploy
-     * 5. Dispara la cadena de jobs
+     * Performs complete deployment process from GitHub
+     * 1. Gets Git configuration
+     * 2. Gets active domains
+     * 3. Validates that data is valid
+     * 4. Creates Deploy record
+     * 5. Triggers job chain
      * 
-     * @throws RuntimeException si falta configuración o dominios
+     * @throws RuntimeException if configuration or domains are missing
      */
     public function deployWithGithub(int $projectId, string $projectName): Deploy
 {
@@ -120,13 +120,13 @@ class DeployService
 }
 
     /**
-     * Realiza todo el proceso de despliegue desde ZIP
-     * 1. Obtiene los dominios activos
-     * 2. Valida que existan dominios
-     * 3. Crea el registro de Deploy
-     * 4. Dispara la cadena de jobs
+     * Performs complete deployment process from ZIP
+     * 1. Gets active domains
+     * 2. Validates that domains exist
+     * 3. Creates Deploy record
+     * 4. Triggers job chain
      * 
-     * @throws RuntimeException si no hay dominios configurados
+     * @throws RuntimeException if no domains are configured
      */
    public function deployWithZip(int $projectId, string $projectName, string $zipFilePath): Deploy
     {
@@ -134,7 +134,7 @@ class DeployService
 
         $domains = $this->domainRepo->findActiveByProjectId($projectId);
         if ($domains->isEmpty()) {
-            throw new RuntimeException('No hay dominios activos configurados para este proyecto.');
+            throw new RuntimeException('No active domains configured for this project.');
         }
 
         $deploymentPath = "www." . Str::slug($projectName);
@@ -144,7 +144,7 @@ class DeployService
             'status' => 'pending',
             'source_type' => 'zip',
             'path' => $deploymentPath,
-            'log_messages' => ['[' . now()->toTimeString() . '] Despliegue iniciado desde archivo ZIP'],
+            'log_messages' => ['[' . now()->toTimeString() . '] Deployment started from ZIP file'],
         ]);
 
         try {
@@ -169,7 +169,7 @@ class DeployService
     }
 
     /**
-     * Actualiza el estado de un despliegue
+     * Updates deployment status
      */
     public function updateDeployStatus(Deploy $deploy, string $status, array $logMessages = []): Deploy
     {
@@ -188,7 +188,7 @@ class DeployService
     }
 
     /**
-     * Marca un despliegue como completado
+     * Marks deployment as completed
      */
     public function markAsCompleted(Deploy $deploy, array $logMessages = []): Deploy
     {
@@ -196,11 +196,11 @@ class DeployService
     }
 
     /**
-     * Marca un despliegue como fallido
+     * Marks deployment as failed
      */
     public function markAsFailed(Deploy $deploy, string $error): Deploy
     {
-        Log::error('Despliegue fallido', [
+        Log::error('Deployment failed', [
             'deploy_id' => $deploy->id,
             'error' => $error
         ]);

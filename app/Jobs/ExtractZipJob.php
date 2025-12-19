@@ -23,8 +23,8 @@ class ExtractZipJob implements ShouldQueue
 
     public function __construct(
         public Deploy $deploy,
-        protected string $zipFilePath, // temp zip
-        protected string $deploymentPath 
+        protected string $zipFilePath, // Temporary ZIP file path in storage/app
+        protected string $deploymentPath // Target deployment path
     ) {}
 
     public function handle(): void
@@ -73,7 +73,7 @@ class ExtractZipJob implements ShouldQueue
                 throw new RuntimeException("No se pudo abrir el archivo ZIP. Puede estar corrupto.");
             }
 
-            // cleaning temp file
+            // Clean up temporary file (no longer needed)
             if (Storage::exists($this->zipFilePath)) {
                 Storage::delete($this->zipFilePath);
                 $this->addLog("🧹 Archivo ZIP temporal eliminado.");
@@ -85,7 +85,7 @@ class ExtractZipJob implements ShouldQueue
             $this->deploy->status = 'failed';
             $this->deploy->save();
             
-            // try to delete the temp file if it still exists
+            // Try to delete the temp file if it still exists
             if (Storage::exists($this->zipFilePath)) {
                 Storage::delete($this->zipFilePath);
             }

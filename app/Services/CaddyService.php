@@ -17,7 +17,7 @@ class CaddyService
     }
 
     /**
-     * ORQUESTADOR PRINCIPAL: Sincroniza los dominios de una carpeta.
+     * PRIMARY ORCHESTRATOR: Synchronizes domains for a folder.
      */
     public function syncDomains(array $domainList, string $path): void
     {
@@ -37,7 +37,7 @@ class CaddyService
     }
 
     /**
-     * Agrega o Actualiza un dominio (Lógica Inteligente UPSERT).
+     * Adds or Updates a domain (Intelligent UPSERT Logic).
      */
     public function addDomain(string $domain, string $path): bool
     {
@@ -74,7 +74,7 @@ class CaddyService
     }
 
     /**
-     * Elimina un dominio de la configuración.
+     * Removes a domain from the configuration.
      */
     public function removeDomain(string $domain): bool
     {
@@ -89,7 +89,7 @@ class CaddyService
     }
 
     /**
-     * Helper: Busca qué dominios apuntan actualmente a una carpeta física.
+     * Helper: Finds which domains currently point to a physical folder.
      */
     private function getDomainsPointingToPath(string $path): array
     {
@@ -119,7 +119,7 @@ class CaddyService
     }
 
     /**
-     * Verifica si un ID ya existe en la configuración de Caddy.
+     * Checks if an ID already exists in the Caddy configuration.
      */
     private function idExists(string $routeId): bool
     {
@@ -128,7 +128,7 @@ class CaddyService
     }
 
     /**
-     * Genera un ID único y válido para Caddy basado en el dominio.
+     * Generates a unique and valid ID for Caddy based on the domain.
      */
     private function getRouteId(string $domain): string
     {
