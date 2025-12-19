@@ -7,6 +7,7 @@ use App\Services\DeployService;
 use App\Services\ProjectService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class DeployController extends Controller
 {
@@ -57,5 +58,78 @@ class DeployController extends Controller
             'data' => $deploy,
             'message' => 'Detalle del despliegue obtenido exitosamente.'
         ]);
+    }
+
+    /**
+     * Deploy project from GitHub repository
+     */
+    public function deployFromGithub(Request $request, int $projectId): JsonResponse
+    {
+        try {
+            // Verify project belongs to authenticated user
+            $project = $this->projectService->getById($projectId);
+            if (!$project || $project->user_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Proyecto no encontrado.'
+                ], 404);
+            }
+
+            $deploy = $this->deployService->deployWithGithub($projectId, $project->name);
+
+            return response()->json([
+                'success' => true,
+                'data' => $deploy,
+                'message' => 'Despliegue iniciado exitosamente. Se están ejecutando despligue en cola de espera.'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error al iniciar despliegue desde GitHub', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Deploy project from ZIP file
+     */
+    public function deployFromZip(Request $request, int $projectId): JsonResponse
+    {
+        try {
+            // Verify project belongs to authenticated user
+            $project = $this->projectService->getById($projectId);
+            if (!$project || $project->user_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Proyecto no encontrado.'
+                ], 404);
+            }
+
+            // Delegar todo el proceso al servicio
+            $deploy = $this->deployService->deployWithZip($projectId, $project->name);
+
+            return response()->json([
+                'success' => true,
+                'data' => $deploy,
+                'message' => 'Despliegue desde ZIP iniciado exitosamente.'
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Error al iniciar despliegue desde ZIP', [
+                'project_id' => $projectId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 }
