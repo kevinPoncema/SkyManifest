@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Deploys routes (nested under projects) - Read-only
         Route::get('deploys', [DeployController::class, 'index']);
+        Route::apiResource('domains', DomainController::class);
     });
 
     // Git Config routes (standalone)
@@ -54,5 +55,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('git-config', [GitConfigController::class, 'update']);
 
     Route::get('deploys/{deploy}', [DeployController::class, 'show']);
-
+    Route::post('deploy/github/{project}', [DeployController::class, 'deployFromGithub']);
+    Route::post('deploy/zip/{project}', [DeployController::class, 'deployFromZip']);
 });

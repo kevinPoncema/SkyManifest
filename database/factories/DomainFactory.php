@@ -18,14 +18,10 @@ class DomainFactory extends Factory
     public function definition(): array
     {
         $domainTypes = [
-            // Main domains
             fake()->domainName(),
-            // Subdomains
             fake()->randomElement(['app', 'www', 'admin', 'api', 'staging', 'dev']) . '.' . fake()->domainName(),
-            // SkyManifest subdomains (realistic for our platform)
             fake()->lexify('????') . '.skymanifest.cloud',
             fake()->lexify('???-???') . '.skymanifest.io',
-            // Startup-style domains
             fake()->randomElement(['my', 'get', 'use', 'try']) . fake()->lexify('????') . '.com',
         ];
 

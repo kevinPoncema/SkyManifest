@@ -101,6 +101,29 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->command->info('🆕 Empty project created (no deploys or domains)');
+
+        // Project 4: Real Deploy Web (Special Project)
+        $realDeployProject = Project::factory()->create([
+            'user_id' => $admin->id,
+            'name' => 'real-deploy-web',
+            'description' => 'Real deployment project for testing the complete deployment pipeline.',
+        ]);
+
+        // Git configuration for Real Deploy Web
+        GitConfig::factory()->create([
+            'project_id' => $realDeployProject->id,
+            'repository_url' => 'https://github.com/kevinponce237/example-web.git',
+            'branch' => 'main',
+            'base_directory' => '/',
+        ]);
+
+        // Active domain for Real Deploy Web
+        Domain::factory()->active()->create([
+            'project_id' => $realDeployProject->id,
+            'url' => 'test-web.kevinponcedev.xyz',
+        ]);
+
+        $this->command->info('🚀 Real Deploy Web project created with Git config and domain');
     }
 
     /**
@@ -133,5 +156,6 @@ class DatabaseSeeder extends Seeder
         });
 
         $this->command->info('👥 5 additional users created with random projects');
+
     }
 }

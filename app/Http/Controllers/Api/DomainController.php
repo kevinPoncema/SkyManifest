@@ -22,7 +22,6 @@ class DomainController extends Controller
      */
     public function index(Request $request, int $projectId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -45,7 +44,6 @@ class DomainController extends Controller
      */
     public function store(StoreDomainRequest $request, int $projectId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -68,7 +66,6 @@ class DomainController extends Controller
      */
     public function show(Request $request, int $projectId, int $domainId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -80,7 +77,6 @@ class DomainController extends Controller
         try {
             $domain = $this->domainService->getById($domainId);
             
-            // Verify domain belongs to the project
             if ($domain->project_id !== $projectId) {
                 return response()->json([
                     'success' => false,
@@ -106,7 +102,6 @@ class DomainController extends Controller
      */
     public function update(UpdateDomainRequest $request, int $projectId, int $domainId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
@@ -117,8 +112,6 @@ class DomainController extends Controller
 
         try {
             $domain = $this->domainService->getById($domainId);
-            
-            // Verify domain belongs to the project
             if ($domain->project_id !== $projectId) {
                 return response()->json([
                     'success' => false,
@@ -146,7 +139,6 @@ class DomainController extends Controller
      */
     public function destroy(Request $request, int $projectId, int $domainId): JsonResponse
     {
-        // Verify project belongs to authenticated user
         $project = $this->projectService->getById($projectId);
         if (!$project || $project->user_id !== $request->user()->id) {
             return response()->json([
