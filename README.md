@@ -410,16 +410,110 @@ GET    /api/ping                        - Verificar disponibilidad del servicio
 
 ## Stack Tecnológico
 
+- **Lenguaje:** PHP 8.2
 - **Framework:** Laravel 11.x
-- **Base de Datos:** PostgreSQL
-- **Sistema de Cola:** Redis
-- **Servidor Web:** Caddy (gestionado vía API)
-- **Contenedorización:** Docker
-- **Autenticación:** Laravel Sanctum (tokens API)
-- **Validación:** Clases Form Requests de Laravel
+- **Base de Datos:** MySQL 8.0
+- **Sistema de Cola:** Laravel Database Driver (MySQL)
+- **Servidor Web / Proxy:** Caddy Web Server v2 (Gestionado vía API)
+- **Infraestructura:** Docker & Docker Compose
+- **Autenticación:** Laravel Sanctum (API Tokens)
+- **Manejo de Archivos:** PHP ZipArchive & Laravel Storage
+
+## 💻 Ejecución en Desarrollo (Local)
+
+Esta sección describe cómo levantar la infraestructura completa de SkyManifest en tu máquina local utilizando Docker.
+
+### 🚀 1. Despliegue Rápido (Quick Start)
+
+Sigue estos pasos para tener la plataforma operativa en minutos.
+
+**Prerrequisitos:**
+
+* Docker Desktop (o Docker Engine + Compose)
+* Git
+
+**Pasos:**
+
+1. **Clonar el repositorio:**
+```bash
+git clone https://github.com/tu-usuario/skymanifest.git
+cd skymanifest
+
+```
+
+
+2. **Configurar el entorno:**
+Copia el archivo de ejemplo.
+```bash
+cp .env.example .env
+
+```
+
+
+3. **Levantar los contenedores:**
+Este comando descarga las imágenes, construye la aplicación y levanta los servicios (App, MySQL, Caddy).
+```bash
+docker compose up -d --build
+
+```
+
+
+4. **Instalar dependencias y configurar Base de Datos:**
+Ejecuta estos comandos dentro del contenedor de la aplicación:
+```bash
+# Instalar paquetes de PHP
+docker compose exec app composer install
+
+# Generar clave de encriptación de Laravel
+docker compose exec app php artisan key:generate
+
+# Correr migraciones y seeders (datos de prueba)
+docker compose exec app php artisan migrate --seed
+
+```
+
+
+5. **Permisos de Carpetas (CRÍTICO):**
+Para evitar errores de "Permission denied" al desplegar sitios, asegúrate de que el usuario del servidor web sea dueño de las carpetas de almacenamiento y sitios:
+```bash
+docker compose exec -u root app chown -R www-data:www-data /var/www/storage
+docker compose exec -u root app chown -R www-data:www-data /var/www/sites
+
+```
+
+
+6. **Encender el Procesador de Colas (Queue Worker):**
+SkyManifest usa colas para los despliegues. Debes dejar este comando corriendo en una terminal aparte (o configurar un contenedor `worker`):
+```bash
+docker compose exec app php artisan queue:work
+
+```
+
+
+
+**¡Listo! Accede a la plataforma:**
+
+* **API Backend:** `http://localhost:88` (o el puerto definido en tu docker-compose)
+* **Panel de Caddy:** `http://localhost:2019`
 
 ---
 
+### ⚙️ 2. Variables de Entorno Clave
+
+Además de las variables estándar de Laravel (`APP_KEY`, `DB_HOST`, etc.), SkyManifest utiliza variables específicas para la orquestación de despliegues.
+
+| Variable | Valor por Defecto (Docker) | Descripción |
+| --- | --- | --- |
+| **Configuración General** |  |  |
+| `APP_URL` | `http://localhost:88` | URL pública donde responde la API. |
+| `DB_CONNECTION` | `mysql` | Motor de base de datos. |
+| `DB_HOST` | `db` | Nombre del servicio de base de datos en `docker-compose.yml`. |
+| `QUEUE_CONNECTION` | `database` | **Importante:** Debe ser `database` para procesar los Jobs de despliegue sin Redis. |
+| **Configuración de Caddy** |  |  |
+| `CADDY_HOST` | `http://caddy:2019` | Dirección interna de la API de administración de Caddy. El contenedor `app` usa esto para enviar configuraciones JSON. |
+| **Configuración de Archivos** |  |  |
+| `DEPLOYMENT_PATH` | `/var/www/sites` | Ruta absoluta **dentro del contenedor** donde se guardarán los sitios web desplegados. Esta ruta debe coincidir con el volumen compartido en Docker. |
+| `FILESYSTEM_DISK` | `local` | Disco por defecto para cargas temporales (ej: subida de ZIPs). |
 ## Notas de Desarrollo
 
 ### Decisiones Clave de Diseño
