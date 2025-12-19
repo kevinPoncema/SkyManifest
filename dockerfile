@@ -1,6 +1,6 @@
 FROM php:8.2-fpm
 
-# Argumentos para el usuario del sistema (útil para coincidir con tu host en Linux)
+# Argumentos para el usuario del sistema
 ARG user=www-data
 ARG uid=1000
 
@@ -25,17 +25,18 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # 4. Configuración de usuario para evitar problemas de permisos
-# Usamos el usuario www-data pero ajustamos su UID si es necesario
-# Esto asegura que Laravel pueda escribir en storage y en el volumen de sitios
 RUN usermod -u $uid $user || true
 
-# 5. Carpeta de trabajo
+# 5. Carpeta de trabajo de la aplicación
 WORKDIR /var/www/html
 
-# 6. Cambiar usuario actual
+# 5.5. Crear el directorio de despliegues y asignar permisos
+RUN mkdir -p /var/www/sites && \
+    chown -R $user:$user /var/www/sites
+
+# 6. Cambiar al usuario sin privilegios
 USER $user
 
-# Exponemos el puerto 9000 (FPM)
 EXPOSE 9000
 
 CMD ["php-fpm"]
